@@ -9,7 +9,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 # =====================================================================
 STORE_ID = "pickmeba"
 APP_ID = "32611"
-CLIENT_SECRET = "fa20c07b6ddbb8cc7ad74119343f9f930bbe88df6f189517"  
+CLIENT_SECRET = "fa20c07b6ddbb8cc7ad74119343f9f930bbe88df6f189517"
 
 TIENDANUBE_HEADERS = {
     "X-App-Id": APP_ID,
