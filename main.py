@@ -97,5 +97,4 @@ def bucle_sincronizador_diario():
                         if talle_mio in stock_en_vita:
                             stock_real = stock_en_vita[talle_mio]
                             if variante['stock'] != stock_real:
-                                print(f"   --> Cambiando Talle {talle_mio}: De {variante['stock']} u. a {stock_real} u.")
-                                actualizar_
+                                print(f"   --> Cambiando Talle {talle_mio}: De {variante['stock']} u. a {
