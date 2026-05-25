@@ -113,4 +113,3 @@ if __name__ == "__main__":
     print("Iniciando servicio de sincronización gratuito...")
     Thread(target=bucle_sincronizador_diario, daemon=True).start()
     iniciar_servidor_web()
-                                actualizar_stock_tiendanube(producto['id'],
