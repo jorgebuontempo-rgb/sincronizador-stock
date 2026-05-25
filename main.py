@@ -66,7 +66,6 @@ def actualizar_stock_tiendanube(product_id, variant_id, nuevo_stock):
 
 # Bucle continuo que corre todos los días de forma automática
 def bucle_sincronizador_diario():
-    # Pausa de cortesía para el arranque del servidor
     time.sleep(5)
     while True:
         print("\n==================================================")
@@ -89,4 +88,29 @@ def bucle_sincronizador_diario():
                             stock_real = stock_en_vita[talle_mio]
                             if variante['stock'] != stock_real:
                                 print(f"   --> Cambiando Talle {talle_mio}: De {variante['stock']} u. a {stock_real} u.")
+                                actualizar_stock_tiendanube(producto['id'], variante['id'], stock_real)
+                else:
+                    print("   ? No se encontró enlace directo en Vita. Saltando...")
+                print("-" * 50)
+                time.sleep(1.5)
+        
+        print("Sincronización diaria finalizada con éxito. Durmiendo por 24 horas...")
+        time.sleep(86400)
+
+# Servidor HTTP básico obligatorio para mantener la cuenta GRATIS en Render
+class ServidorSoporte(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+        self.wfile.write(b"Sincronizador Pick Me - Online y Ejecutando Gratis.")
+
+def iniciar_servidor_web():
+    server = HTTPServer(('0.0.0.0', 10000), ServidorSoporte)
+    server.serve_forever()
+
+if __name__ == "__main__":
+    print("Iniciando servicio de sincronización gratuito...")
+    Thread(target=bucle_sincronizador_diario, daemon=True).start()
+    iniciar_servidor_web()
                                 actualizar_stock_tiendanube(producto['id'],
