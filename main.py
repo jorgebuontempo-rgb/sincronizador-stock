@@ -60,7 +60,7 @@ def obtener_stock_proveedor(nombre_producto_slug):
                     talle = texto_opcion.split("(")[0].strip()
                     detalles_stock = texto_opcion.split("(")[1].lower()
                     cantidad = 0 if "sin stock" in detalles_stock else int(''.join(filter(str.isdigit, detalles_stock)))
-                    stock_proveedor[talle] = quantity = cantidad
+                    stock_proveedor[talle] = cantidad
         return stock_proveedor
     except:
         return None
@@ -97,48 +97,5 @@ def bucle_sincronizador_diario():
                         if talle_mio in stock_en_vita:
                             stock_real = stock_en_vita[talle_mio]
                             if variante['stock'] != stock_real:
-                                print(f"   --> Cambiando Talle {talle_mio}: De {variante['stock']} u. a {stock_real} u.", flush=True)
-                                actualizar_stock_tiendanube(producto['id'], variante['id'], stock_real)
-                else:
-                    print("   ? No se encontró enlace directo en Vita. Saltando...", flush=True)
-                print("-" * 50, flush=True)
-                time.sleep(1)
-        
-        print("\nSincronización finalizada. Próximo escaneo en 24 horas...", flush=True)
-        time.sleep(86400)
-
-# =====================================================================
-# 3. SERVIDOR DE AUTOCAPTURA DE TOKEN (MANTIENE LA CUENTA GRATIS)
-# =====================================================================
-class ServidorSoporte(BaseHTTPRequestHandler):
-    def do_GET(self):
-        global ACCESS_TOKEN_REAL
-        self.send_response(200)
-        self.send_header("Content-type", "text/html; charset=utf-8")
-        self.end_headers()
-        
-        query_components = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        
-        if "code" in query_components:
-            code_temporal = query_components["code"][0]
-            print(f"\n[🔑] Código temporal detectado. Solicitando AccessToken permanente...", flush=True)
-            
-            url_token = "https://www.tiendanube.com/apps/authorize/token"
-            payload = {
-                "client_id": APP_ID,
-                "client_secret": CLIENT_SECRET,
-                "grant_type": "authorization_code",
-                "code": code_temporal
-            }
-            
-            try:
-                res = requests.post(url_token, json=payload)
-                if res.status_code == 200:
-                    datos_token = res.json()
-                    ACCESS_TOKEN_REAL = datos_token.get("access_token")
-                    print("[🎉 ¡ÉXITO!] Token permanente generado y guardado correctamente.", flush=True)
-                    
-                    respuesta_html = "<h1>¡Conexión Exitosa con Pick Me!</h1><p>El sincronizador ya tiene los permisos y empezó a trabajar. Podés cerrar esta pestaña.</p>"
-                    self.wfile.write(respuesta_html.encode('utf-8'))
-                    return
-                else:
+                                print(f"   --> Cambiando Talle {talle_mio}: De {variante['stock']} u. a {stock_real} u.")
+                                actualizar_
