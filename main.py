@@ -117,48 +117,10 @@ class ServidorSoporte(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
         
-        # Analizamos si Tiendanube nos está mandando el código por la URL
         query_components = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
         
         if "code" in query_components:
             code_temporal = query_components["code"][0]
             print(f"\n[🔑] Código temporal detectado. Solicitando AccessToken permanente...", flush=True)
             
-            # Llamamos automáticamente a Tiendanube para cambiar el código por el Token real
-            url_token = "https://www.tiendanube.com/apps/authorize/token"
-            payload = {
-                "client_id": APP_ID,
-                "client_secret": CLIENT_SECRET,
-                "grant_type": "authorization_code",
-                "code": code_temporal
-            }
-            
-            try:
-                res = requests.post(url_token, json=payload)
-                if res.status_code == 200:
-                    datos_token = res.json()
-                    ACCESS_TOKEN_REAL = datos_token.get("access_token")
-                    print("[🎉 ¡ÉXITO!] Token permanente generado y guardado correctamente.", flush=True)
-                    self.wfile.write(b"<h1>¡Conexión Exitosa con Pick Me!</h1><p>El sincronizador ya tiene los permisos y empezó a trabajar. Podés cerrar esta pestaña.</p>")
-                    return
-                else:
-                    print(f"✗ Error al cambiar el token: {res.status_code} - {res.text}", flush=True)
-            except Exception as e:
-                print(f"✗ Falló el canje automático de llaves: {e}", flush=True)
-        
-        if ACCESS_TOKEN_REAL:
-            self.wfile.write(b"Sincronizador Pick Me - Online y Ejecutando con Permisos.")
-        else:
-            self.wfile.write(b"Sincronizador Pick Me - Servidor Activo. Falta autorizar la App en Tiendanube.")
-
-    def log_message(self, format, *args):
-        return
-
-def iniciar_servidor_web():
-    server = HTTPServer(('0.0.0.0', 10000), ServidorSoporte)
-    server.serve_forever()
-
-if __name__ == "__main__":
-    print("Iniciando sistema de auto-sincronización...", flush=True)
-    Thread(target=bucle_sincronizador_diario, daemon=True).start()
-    iniciar_servidor_web()
+            url_token = "
