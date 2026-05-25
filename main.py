@@ -90,37 +90,4 @@ def bucle_sincronizador_diario():
                 print(f"Procesando: {producto['name']['es']}...", flush=True)
                 
                 stock_en_vita = obtener_stock_proveedor(slug_mio)
-                if stock_en_vita:
-                    print(f"   ✓ Stock detectado en Vita: {stock_en_vita}", flush=True)
-                    for variante in producto['variants']:
-                        talle_mio = variante['values'][0]['es'].strip()
-                        if talle_mio in stock_en_vita:
-                            stock_real = stock_en_vita[talle_mio]
-                            if variante['stock'] != stock_real:
-                                print(f"   --> Cambiando Talle {talle_mio}: De {variante['stock']} u. a {stock_real} u.", flush=True)
-                                actualizar_stock_tiendanube(producto['id'], variante['id'], stock_real)
-                else:
-                    print("   ? No se encontró enlace directo en Vita. Saltando...", flush=True)
-                print("-" * 50, flush=True)
-                time.sleep(1)
-        
-        print("\nSincronización finalizada. Próximo escaneo en 24 horas...", flush=True)
-        time.sleep(86400)
-
-# =====================================================================
-# 3. SERVIDOR DE AUTOCAPTURA DE TOKEN (MANTIENE LA CUENTA GRATIS)
-# =====================================================================
-class ServidorSoporte(BaseHTTPRequestHandler):
-    def do_GET(self):
-        global ACCESS_TOKEN_REAL
-        self.send_response(200)
-        self.send_header("Content-type", "text/html; charset=utf-8")
-        self.end_headers()
-        
-        query_components = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-        
-        if "code" in query_components:
-            code_temporal = query_components["code"][0]
-            print(f"\n[🔑] Código temporal detectado. Solicitando AccessToken permanente...", flush=True)
-            
-            url_token = "
+                if stock_en
