@@ -3,21 +3,26 @@ from bs4 import BeautifulSoup
 import time
 from threading import Thread
 from http.server import HTTPServer, BaseHTTPRequestHandler
-import sys
+import urllib.parse
 
 # =====================================================================
-# 1. CREDENCIALES DE TIENDANUBE (PORTAL DE PARTNERS - INTEGRACIÓN REAL)
+# 1. CREDENCIALES DE CONFIGURACIÓN (PORTAL DE PARTNERS)
 # =====================================================================
 STORE_ID = "pickmeba"
 APP_ID = "32611"
 CLIENT_SECRET = "8cff55e9ba26a11756cfef805a5aefd6006e8bfe0e87d7b3"  
 
-TIENDANUBE_HEADERS = {
-    "X-App-Id": APP_ID,
-    "Authentication": f"bearer {CLIENT_SECRET}",
-    "User-Agent": "SyncStockpickme (contacto@pickmeba.com.ar)",
-    "Content-Type": "application/json"
-}
+# Variable global donde el script guardará el Token definitivo apenas hagas clic
+ACCESS_TOKEN_REAL = None
+
+def obtener_headers():
+    global ACCESS_TOKEN_REAL
+    return {
+        "X-App-Id": APP_ID,
+        "Authentication": f"bearer {ACCESS_TOKEN_REAL}",
+        "User-Agent": "SyncStockpickme (contacto@pickmeba.com.ar)",
+        "Content-Type": "application/json"
+    }
 
 # =====================================================================
 # 2. FUNCIONES DE SINCRONIZACIÓN DE STOCK
@@ -25,13 +30,13 @@ TIENDANUBE_HEADERS = {
 def obtener_mis_productos_activos():
     url_endpoint = f"https://api.tiendanube.com/v1/{STORE_ID}/products?status=published&per_page=100"
     try:
-        response = requests.get(url_endpoint, headers=TIENDANUBE_HEADERS)
+        response = requests.get(url_endpoint, headers=obtener_headers())
         if response.status_code == 200:
             return response.json()
-        print(f"✗ Estado de respuesta API Tiendanube: {response.status_code}")
+        print(f"✗ Estado de respuesta API Tiendanube: {response.status_code}", flush=True)
         return []
     except Exception as e:
-        print(f"✗ Error de conexión con Tiendanube: {e}")
+        print(f"✗ Error de conexión con Tiendanube: {e}", flush=True)
         return []
 
 def obtener_stock_proveedor(nombre_producto_slug):
@@ -63,11 +68,16 @@ def obtener_stock_proveedor(nombre_producto_slug):
 def actualizar_stock_tiendanube(product_id, variant_id, nuevo_stock):
     url_endpoint = f"https://api.tiendanube.com/v1/{STORE_ID}/products/{product_id}/variants/{variant_id}"
     payload = {"stock": nuevo_stock}
-    requests.put(url_endpoint, json=payload, headers=TIENDANUBE_HEADERS)
+    requests.put(url_endpoint, json=payload, headers=obtener_headers())
 
-# Bucle continuo que corre todos los días de forma automática
 def bucle_sincronizador_diario():
+    global ACCESS_TOKEN_REAL
     while True:
+        if not ACCESS_TOKEN_REAL:
+            print("[Esperando] El script está listo. Esperando que hagas la instalación para capturar el Token...", flush=True)
+            time.sleep(10)
+            continue
+            
         print("\n==================================================", flush=True)
         print("   INICIANDO ACTUALIZACIÓN AUTOMÁTICA DE STOCK    ", flush=True)
         print("==================================================\n", flush=True)
@@ -93,21 +103,55 @@ def bucle_sincronizador_diario():
                     print("   ? No se encontró enlace directo en Vita. Saltando...", flush=True)
                 print("-" * 50, flush=True)
                 time.sleep(1)
-        else:
-            print("✗ No se pudieron recuperar productos. Revisando credenciales...", flush=True)
         
         print("\nSincronización finalizada. Próximo escaneo en 24 horas...", flush=True)
         time.sleep(86400)
 
-# Servidor HTTP básico obligatorio para mantener la cuenta GRATIS en Render
+# =====================================================================
+# 3. SERVIDOR DE AUTOCAPTURA DE TOKEN (MANTIENE LA CUENTA GRATIS)
+# =====================================================================
 class ServidorSoporte(BaseHTTPRequestHandler):
     def do_GET(self):
+        global ACCESS_TOKEN_REAL
         self.send_response(200)
-        self.send_header("Content-type", "text/html")
+        self.send_header("Content-type", "text/html; charset=utf-8")
         self.end_headers()
-        self.wfile.write(b"Sincronizador Pick Me - Online y Ejecutando Gratis.")
+        
+        # Analizamos si Tiendanube nos está mandando el código por la URL
+        query_components = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        
+        if "code" in query_components:
+            code_temporal = query_components["code"][0]
+            print(f"\n[🔑] Código temporal detectado. Solicitando AccessToken permanente...", flush=True)
+            
+            # Llamamos automáticamente a Tiendanube para cambiar el código por el Token real
+            url_token = "https://www.tiendanube.com/apps/authorize/token"
+            payload = {
+                "client_id": APP_ID,
+                "client_secret": CLIENT_SECRET,
+                "grant_type": "authorization_code",
+                "code": code_temporal
+            }
+            
+            try:
+                res = requests.post(url_token, json=payload)
+                if res.status_code == 200:
+                    datos_token = res.json()
+                    ACCESS_TOKEN_REAL = datos_token.get("access_token")
+                    print("[🎉 ¡ÉXITO!] Token permanente generado y guardado correctamente.", flush=True)
+                    self.wfile.write(b"<h1>¡Conexión Exitosa con Pick Me!</h1><p>El sincronizador ya tiene los permisos y empezó a trabajar. Podés cerrar esta pestaña.</p>")
+                    return
+                else:
+                    print(f"✗ Error al cambiar el token: {res.status_code} - {res.text}", flush=True)
+            except Exception as e:
+                print(f"✗ Falló el canje automático de llaves: {e}", flush=True)
+        
+        if ACCESS_TOKEN_REAL:
+            self.wfile.write(b"Sincronizador Pick Me - Online y Ejecutando con Permisos.")
+        else:
+            self.wfile.write(b"Sincronizador Pick Me - Servidor Activo. Falta autorizar la App en Tiendanube.")
+
     def log_message(self, format, *args):
-        # Evita llenar la pantalla con las conexiones de Tiendanube y prioriza ver el stock
         return
 
 def iniciar_servidor_web():
@@ -115,12 +159,6 @@ def iniciar_servidor_web():
     server.serve_forever()
 
 if __name__ == "__main__":
-    print("Encediendo Sincronizador Automático Pick Me...", flush=True)
-    
-    # 1. Lanzamos el bucle del stock en un hilo paralelo e inmediato
-    proceso_stock = Thread(target=bucle_sincronizador_diario)
-    proceso_stock.daemon = True
-    proceso_stock.start()
-    
-    # 2. Dejamos el servidor web corriendo de fondo para Render
+    print("Iniciando sistema de auto-sincronización...", flush=True)
+    Thread(target=bucle_sincronizador_diario, daemon=True).start()
     iniciar_servidor_web()
